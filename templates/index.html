@@ -1,0 +1,42 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Homepage
+{% endblock %}
+
+{% block main %}
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Name</th>
+                <th>Shares</th>
+                <th>Price</th>
+                <th>TOTAL</th>
+            </tr>
+        </thead>
+        <tfoot>
+            <tr style="background-color: #ffffcc;">
+                <td>ASSETS</td>
+                <td colspan="3"></td>
+                <td><strong>${{ assets }}</strong></td>
+            </tr>
+        </tfoot>
+        <tbody>
+                {% for row in table %}
+                <tr>
+                    <td>{{ row[0] }}</td>
+                    <td>{{ row[1] }}</td>
+                    <td>{{ row[2] }}</td>
+                    <td>${{ row[3] }}</td>
+                    <td>${{ row[4] }}</td>
+                </tr>
+                {% endfor %}
+            <tr style="background-color: #ffffe6">
+                <td>CASH</td>
+                <td colspan="3"></td>
+                <td>${{ cash }}</td>
+            </tr>
+        </tbody>
+    </table>
+{% endblock %}
