@@ -71,7 +71,8 @@ def settings():
         passconf = request.form.get("passconf")
 
         if password != passconf:
-            return apology("Passwords do not match")
+            flash('Passwords do not match', 'error')
+            return render_template("settings.html")
 
         newpass = generate_password_hash(password)
         dbpass = db.execute("UPDATE users SET hash = :hashed WHERE id = :user_id", hashed=newpass, user_id=session["user_id"])
@@ -86,17 +87,27 @@ def buy():
         return render_template("buy.html")
     else:
         symbol = request.form.get("symbol").upper()
-        if not symbol or lookup(symbol) == None:
-            return apology("Invalid stock symbol")
+        shares = request.form.get("shares")
+        if symbol == None or shares == None:
+            flash('Invalid stock symbol or quantity', 'error')
+            return render_template("buy.html")
+        if lookup(symbol) == None:
+            flash('Invalid stock symbol', 'error')
+            return render_template("buy.html")
+        try:
+            x = int(shares)
+        except:
+            flash('Invalid quantity', 'error')
+            return render_template("buy.html")
 
         price = lookup(symbol)["price"]
-        shares = request.form.get("shares")
         cash = db.execute("SELECT cash FROM users WHERE id = (?)",
                         (session["user_id"]))[0]["cash"]
         stockvalue = round(float(price) * int(shares), 2)
 
         if stockvalue > cash:
-            return apology("You do not have enough cash!")
+            flash('You do not have enough cash!', 'error')
+            return render_template("buy.html")
         cash -= stockvalue
         trans = "BUY"
         time = datetime.now()
@@ -137,11 +148,13 @@ def login():
 
         # Ensure username was submitted
         if not request.form.get("username"):
-            return apology("must provide username", 403)
+            flash('Invalid usernamel', 'error')
+            return render_template("login.html")
 
         # Ensure password was submitted
         elif not request.form.get("password"):
-            return apology("must provide password", 403)
+            flash('Invalid password', 'error')
+            return render_template("login.html")
 
         # Query database for username
         rows = db.execute("SELECT * FROM users WHERE username = :username",
@@ -149,7 +162,8 @@ def login():
 
         # Ensure username exists and password is correct
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
-            return apology("invalid username and/or password", 403)
+            flash('Invalid username or password. Please try again', 'error')
+            return render_template("login.html")
 
         # Remember which user has logged in
         session["user_id"] = rows[0]["id"]
@@ -181,8 +195,9 @@ def quote():
 
     else:
         symbol = request.form.get("symbol").upper()
-        if lookup(symbol) == None:
-            return apology("Invalid stock symbol")
+        if symbol == None or lookup(symbol) == None:
+            flash('Invalid stock symbol', 'error')
+            return render_template("quote.html")
         value = lookup(symbol)["price"]
         name = lookup(symbol)["name"]
         return render_template("quoted.html", symbol=symbol, value=value, name=name)
@@ -195,14 +210,17 @@ def register():
 
         #Error checking
         if request.form.get("password") != request.form.get("passwordconf"):
-            return apology("Passwords do not match", 403)
+            flash('Passwords do not match', 'error')
+            return render_template("register.html")
         username = request.form.get("username")
         if not username:
-            return apology("Username cannot be empty")
+            flash('Username cannot be empty', 'error')
+            return render_template("register.html")
         rows = db.execute("SELECT * FROM users WHERE username = :username",
                           username=request.form.get("username"))
         if len(rows) != 0:
-            return apology("Username already taken")
+            flash('Username unavailable. Please select another one', 'error')
+            return render_template("register.html")
 
         hashpass = generate_password_hash(request.form.get("password"))
         db.execute("INSERT INTO users (username, hash, cash) VALUES (?,?,?)", username, hashpass, 10000)
@@ -223,14 +241,20 @@ def sell():
     else:
         symbol = request.form.get("symbol")
         shares = request.form.get("shares")
+        if symbol == None or shares == "":
+            flash('Please select a valid stock and quantity to sell', 'error')
+            return render_template("sell.html")
         if len(db.execute("SELECT name FROM stocks WHERE name = :name", name=symbol)) == 0:
-            return apology("Select a valid stock symbol")
+            flash('Please select a stock symbol from the dropdown menu', 'error')
+            return render_template("sell.html")
         if shares == "" or int(shares) <= 0:
-            return apology("Shares cannot be blank")
+            flash('Shares cannot be blank', 'error')
+            return render_template("sell.html")
 
         currentshares = int(db.execute("SELECT shares FROM stocks WHERE user_id = :user_id AND name = :name", user_id = session["user_id"], name=symbol)[0]["shares"])
         if int(shares) > int(currentshares):
-            return apology("You do not own enough shares")
+            flash('You do not own enough shares', 'error')
+            return render_template("sell.html")
 
         price = lookup(symbol)["price"]
         value = round(int(shares) * float(price), 2)
